@@ -8,3 +8,15 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r}
+annuals_biomass <- read.csv("Data/632_annuals_biomass.csv")
+annuals_composition <- read.csv("Data/632_annuals_composition.csv")
+atmospheric_deposition <- read.csv("Data/632_atmospheric_deposition.csv")
+fertilizer_application <- read.csv("Data/632_fertilizer_application.csv")
+plant_root_simulator <- read.csv("Data/632_plant_root_simulator.csv")
+stem_growth <- read.csv("Data/632_stem_growth.csv")
+tissue_chn <- read.csv("Data/632_tissue_chn.csv")
+tissue_icp <- read.csv("Data/632_tissue_icp.csv")
+```
+
