@@ -1,0 +1,10 @@
+---
+title: "Project Report"
+author: "Kyle Conrad and Sarah Baker"
+date: "11/19/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
