@@ -20,3 +20,166 @@ tissue_chn <- read.csv("Data/632_tissue_chn.csv")
 tissue_icp <- read.csv("Data/632_tissue_icp.csv")
 ```
 
+Cleaning up annuals_composition:
+```{r}
+annuals_composition <- subset(annuals_composition, select = -c(date))
+  # Removing the date column (it's empty, so we don't need it anyway)
+
+annuals_composition2 <- annuals_composition %>% 
+  # Creates a new data set  
+  mutate(gp = cumsum(cover_type == 1)) %>% 
+    # Creates a new column, gp, from column name
+  pivot_wider(names_from = "cover_type", values_from = "cover_amount") %>% 
+    # Takes each entry under cover_type and creates a column
+      # Then, fills the rows with the corresponding entry from the cover_amount column
+  select(-gp)
+    # Removes the gp column
+
+annuals_composition2[is.na(annuals_composition2)] = 0
+  # Replaces the NAs in the data set with zeros
+    # This assumes that anywhere we do not have a recorded amount of cover for a species, that is because it was not present
+
+annuals_composition2 <- subset(annuals_composition2, select = -c(location_within_plot, collector, cover_category, sampled, green, litter, unidentified_1_2018, unidentified_3_2018, unidentified_2_2018, unidentified_1_2019))
+  # Removing unnecessary columns
+
+annuals_composition2 <- annuals_composition2 %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, subplot, treatment_code, year) %>%
+    # First, groups by site_code, plot_id, subplot, treatment_code, and year
+  summarise_at(vars(Crassula_connata:Matthiola_parviflora), sum)
+    # Then, averages mass for each grouping
+```
+
+Cleaning up annuals_biomass:
+```{r}
+annuals_biomass <- subset(annuals_biomass, select = -c(location_within_plot, subplot, subquad_orientation, date, notes))
+  # Removing location_within_plot, subplot, subquad_orientation, date, and notes
+
+annuals_biomass <- annuals_biomass %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, treatment_code, year) %>%
+    # First, groups by site_code, plot_id, treatment_code, and year
+  summarise(avg_mass = mean(mass))
+    # Then, averages mass for each grouping
+```
+
+Cleaning up atmospheric_deposition:
+```{r}
+atmospheric_deposition$year <- year(ymd(atmospheric_deposition$collection_date))
+  # Creating a year column 
+
+atmospheric_deposition <- subset(atmospheric_deposition, select = -c(run_id, field_id, collection_date, notes))
+  # Removing the run_id, field_id, collection_date and notes columns
+
+atmospheric_deposition <- atmospheric_deposition %>%
+  # Over-writes data set
+  group_by(site_code, analyte_name, year) %>%
+    # First, groups by site_code, analyte_name, and year
+  summarise(avg_concentration = mean(concentration))
+    # Then, averages concentration for each grouping
+```
+
+Cleaning up fertilizer_application:
+```{r}
+fertilizer_application$year <- year(ymd(fertilizer_application$application_date))
+  # Creating a year column 
+
+fertilizer_application <- subset(fertilizer_application, select = -c(application_date))
+  # Removing the application_date column
+
+fertilizer_application <- fertilizer_application %>%
+  # Over-writes data set
+  group_by(site_code, year) %>%
+    # First, groups by site_code, and year
+  summarise(avg_nitrogen = mean(nitrogen), avg_phosphorus = mean(phosphorus))
+    # Then, averages nitrogen and phosphorus for each grouping
+```
+
+Cleaning up plant_root_simulator:
+```{r}
+plant_root_simulator$year <- year(ymd(plant_root_simulator$start_date))
+  # Creating a year column 
+
+plant_root_simulator <- subset(plant_root_simulator, select = -c(start_date, end_date, flag, location_within_plot, num_cation_probes, num_anion_probes, notes))
+  # Removing the start_date, end_date, flag, location_within_plot, num_cation_probes, and num_anion_probes
+
+plant_root_simulator <- plant_root_simulator %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, treatment_code, analyte, year) %>%
+    # First, groups by site_code, plot_id, treatment_code, analyte,
+  summarise(avg_finalValue = mean(final_value))
+    # Then, final_value for each grouping
+```
+
+Cleaning up stem_growth:
+```{r}
+stem_growth$year <- year(ymd(stem_growth$post_date))
+  # Creating a year column 
+    # Using the post_date because measurements made at post_date
+
+stem_growth <- subset(stem_growth, select = -c(shrub_code, direction, pre_date, post_date, post_note, post_measurement, stem_comment, plot_comment))
+  # Removing the shrub_code, direction, pre_date, post_date, post_note, post_measurement, stem_comment, and plot_comment columns
+
+stem_growth <- stem_growth %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, treatment_code, scientific_name, year) %>%
+    # First, groups by site_code, plot_id, treatment_code, scientific_name, analyte,
+  summarise(avg_stemLength = mean(stem_length))
+    # Then, stem_length for each grouping
+```
+
+Cleaning up tissue_chn:
+```{r}
+tissue_chn$year <- year(ymd(tissue_chn$sample_date))
+  # Creating a year column 
+
+tissue_chn <- subset(tissue_chn, select = -c(sample_date, season_year, Comment))
+  # Removing the sample_date, season_year, and notes columns
+
+tissue_chn <- tissue_chn %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, treatment_code, tissue_type, analyte, year) %>%
+    # First, groups by site_code, plot_id, treatment_code, tissue_type, analyte, and year
+  summarise(avg_weight_g = mean(Weight), avg_composition = mean(percent_composition))
+    # Then, average weight and percent_composition for each grouping
+```
+
+Cleaning up tissue_icp:
+```{r}
+tissue_icp$year <- year(ymd(tissue_icp$sample_date))
+  # Creating a year column 
+
+tissue_icp <- subset(tissue_icp, select = -c(sample_date, season_year, instrument, source_file))
+  # Removing the sample_date, season_year, instrument, and source_file columns
+
+tissue_icp <- tissue_icp %>%
+  # Over-writes data set
+  group_by(site_code, plot_id, treatment_code, tissue_type, isotope_element, year) %>%
+    # First, groups by site_code, plot_id, treatment_code, tissue_type, analyte, and year
+  summarise(avg_concentration_isotope = mean(concentration))
+    # Then, average weight and percent_composition for each grouping
+```
+
+Merging data sets:
+```{r}
+Reduce(intersect, lapply(list(annuals_biomass, annuals_composition2, plant_root_simulator, stem_growth, tissue_chn, tissue_icp), names))
+   # These data sets all contain site_code, plot_id, treatment_code, and year
+
+Reduce(intersect, lapply(list(annuals_biomass, atmospheric_deposition, plant_root_simulator, stem_growth, tissue_chn, tissue_icp), names))
+  # These data sets all contain site_code and year
+
+# Starting with the data sets that have the most column in common:
+  # merging by site_code, plot_id, treatment_code, and year
+dataframes <- list(annuals_biomass, annuals_composition2, plant_root_simulator, stem_growth, tissue_chn, tissue_icp)
+  # Creating list of data frames
+
+data_comb1 <- dataframes %>% reduce(full_join, by = c("site_code", "plot_id", "treatment_code", "year"))
+  # Merging by common columns
+
+# Now merging with the last data set
+dataframes <- list(data_comb1, atmospheric_deposition)
+  # Creating list of data frames
+
+data_comb_full <- dataframes %>% reduce(full_join, by = c("site_code", "year"))
+  # Merging by common columns
+```
