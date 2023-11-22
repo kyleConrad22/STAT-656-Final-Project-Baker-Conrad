@@ -20,6 +20,12 @@ tissue_chn <- read.csv("Data/632_tissue_chn.csv")
 tissue_icp <- read.csv("Data/632_tissue_icp.csv")
 ```
 
+Loading the required packages:
+```{r}
+library(tidyverse) # For re-formatting data sets
+library(lubridate) # For manipulations of date columns
+```
+
 Cleaning up annuals_composition:
 ```{r}
 annuals_composition <- subset(annuals_composition, select = -c(date))
