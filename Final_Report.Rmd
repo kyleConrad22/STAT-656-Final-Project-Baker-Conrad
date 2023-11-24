@@ -9,6 +9,13 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Loading the required packages:
+```{r}
+library(tidyverse) # For re-formatting data sets
+library(lubridate) # For manipulations of date columns
+```
+
+Read in data:
 ```{r}
 annuals_biomass <- read.csv("Data/632_annuals_biomass.csv")
 annuals_composition <- read.csv("Data/632_annuals_composition.csv")
@@ -18,12 +25,6 @@ plant_root_simulator <- read.csv("Data/632_plant_root_simulator.csv")
 stem_growth <- read.csv("Data/632_stem_growth.csv")
 tissue_chn <- read.csv("Data/632_tissue_chn.csv")
 tissue_icp <- read.csv("Data/632_tissue_icp.csv")
-```
-
-Loading the required packages:
-```{r}
-library(tidyverse) # For re-formatting data sets
-library(lubridate) # For manipulations of date columns
 ```
 
 Cleaning up annuals_composition:
