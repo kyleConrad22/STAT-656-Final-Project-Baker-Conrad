@@ -9,6 +9,13 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Questions of interest
+\begin{itemize}
+  \item How is the growth of plants within the Sonoran Desert affected by different fertilization methods and nitrogen atmospheric deposition.
+  \item Is there a difference in the impact of these fertilization methods and nitrogen deposition between the three zones studied? These zones are: with the urban core, west of the urban core, and east of the urban core.
+  \item Is there a difference apparent between affect on growth of annual plants as compared to perennial plants? What is the impact on growth of Larrea Tridentata plants specifically?
+\end{itemize}
+
 Loading the required packages:
 ```{r}
 library(tidyverse) # For re-formatting data sets
@@ -27,6 +34,9 @@ tissue_chn <- read.csv("Data/632_tissue_chn.csv")
 tissue_icp <- read.csv("Data/632_tissue_icp.csv")
 ```
 
+Prior to beginning analysis, the data should be cleaned to remove justifiable outlying observations. Additionally, variables which will not be used will be removed from each sub data set prior to combining data.\
+
+Begin by cleaning up `annuals_biomass` which contains the response variable of interest, biomass. 
 Cleaning up annuals_composition:
 ```{r}
 annuals_composition <- subset(annuals_composition, select = -c(date))
@@ -190,3 +200,218 @@ dataframes <- list(data_comb1, atmospheric_deposition)
 data_comb_full <- dataframes %>% reduce(full_join, by = c("site_code", "year"))
   # Merging by common columns
 ```
+
+# Appendix
+## Descriptions of Data Sets and Variables
+### Annuals_Biomass
+Biomass (g) of annual plants harvested from subplots within Desert Fertilization study plots. One-meter subplots include locations around a Larrea tridentata plant and locations in the interplant space between shrubs. Material is harvested from 0.25 square meter quadrants within each subplot. All harvests occur during the spring.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item location\_within\_plot - habitat within plot where probes were deployed
+  \item subplot - subplot number (one of two replicates)
+  \item subquad\_orientation - direction of sub-quadrant from which biomass was harvested
+  \item date - date of data collection
+  \item year - year of data collection
+  \item mass - mass of biomass harvested in 0.25 meter Square quadrant
+  \item notes - field and processing notes
+\end{itemize}
+
+### Annuals_Composition
+Composition of annual plants and some other characteristics (e.g., bare soil, base or canopy of perennial plants) at subplots within Desert Fertilization study plots. One-meter subplots include locations around a Larrea tridentata plant and locations in the interplant space between shrubs. All measurements collected in the spring.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item location\_within\_plot - habitat within plot where probes were deployed
+  \item subplot - subplot number (one of two replicates)
+  \item date - date of data collection
+  \item year - year of data collection
+  \item collector - initials of subplot surveyors
+  \item cover\_type - taxon of annual plant, plot characteristic, or logistical note
+  \item cover\_category - nature of the observation (taxonomic, general plot characteristic, logistical)
+  \item cover\_amount - proportion of subplot as a decimal fraction of this type
+\end{itemize}
+
+### Atmospheric_Deposition
+Ammonium-nitrogen and nitrate-nitrogen as measured by ion exchange resin (IER) collectors that are used to measure bulk (wet) deposition in interplant open spaces and throughfall (wet and dry) deposition under the dominant shrub.
+\begin{itemize}
+  \item run\_id - unique identifer of Lachat run provided primarily to allow users to associate blanks with samples
+  \item field\_id - sample identifer
+  \item collection\_date - date collectors are extracted from their deployment in the field
+  \item notes - technician notes regarding conditions in the field or sample processing
+  \item analyte\_name - nitrogen species measured (ammonium-nitrogen or nitrate-nitrogen)
+  \item concentation - concentration of nitrogen species measured as ammonium-nitrogen or nitrate-nitrogen
+  \item site\_code - site name abbreviation
+\end{itemize}
+
+### Fertilizer_Application
+Catalog of amounts and timing of nitrogen and phosphorus fertilizer applications to nitrogen (N), phosphorus (P), and nitrogen+phosphorus (N+P) treatment plots - applications are delivered to the respective plot at the site that receives either N, P, or an N+P addition, except control sites (n = 2) that do not receive a fertilizer amendment.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item application\_date - date of fertilizer application
+  \item nitrogen - amount of ammonium-nitrate nitrogen fertilizer applied to 20mx20m nitrogen (N) and nitrogen+phosphorus (N+P) treatment plots
+  \item phosphorus - amount of triple-super phosphate phosphorus fertilizer applied to 20mx20m phosphorus (P) and nitrogen+phosphorus (N+P) treatment plots
+\end{itemize}
+
+### Plant_Root_Simulator
+Soil ion concentrations as determined with Plant Root Simulator (PRS®) probes (ion exchange resin membranes). Probes for the analyses of soil anions have a positively-charged membrane to simultaneously attract and adsorb all negatively-charged anions, such as nitrate (NO3-), phosphate (H2PO4-, HPO42-), and sulphate (SO42-), whereas cation probes have a negatively-charged membrane to simultaneously attract and adsorb all positively-charged cations, such as ammonium (NH4+), potassium (K+), calcium (Ca2+), and magnesium (Mg2+).
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item start\_date - date of probe deployment
+  \item end\_date - date of probe extraction
+  \item analyte - analyte measured
+  \item final\_value - analyte concentration
+  \item flag - data quality flag
+  \item location\_within\_plot - habitat within plot where probes were deployed
+  \item num\_cation\_probes - number of probes designated for analysis of cations recovered (of four)
+  \item num\_anion\_probes - number of probes designated for analysis of anions recovered (of four)
+  \item notes - notes pertaining to the deployment or analysis of the probes
+\end{itemize}
+
+### Stem_Growth
+Biannual measures of stem growth on five Larrea tridentata study plants in Desert Fertilization experiment treatment and control plots.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item scientific\_name - scientific name of plant measured
+  \item shrub\_code - study plant identifier
+  \item direction - direction or quadrant of plant in which measured stem is positioned
+  \item pre\_date - date of initial or pre stem-length measurement
+  \item post\_date - date of final or post stem-length
+  \item post\_note - field note regarding final or post stem-length measurement
+  \item post\_measurement - boolean indicator denoting whether the measurement is a pre or initial stem-length measurement (FALSE), or a final or post stem-length measurement (TRUE)
+  \item stem\_length - length of stem
+  \item stem\_comment - field note(s) regarding particular shrub or measurement
+  \item plot\_comment - field note(s) regarding particular the plot or site
+\end{itemize}
+
+### Tissue_Chn
+CHN (Carbon, Hydrogen, and Nitrogen) elemental analysis of Larrea tridentata leaf tissue and Pectocarya recurvata (whole plant) tissue collected from control plots at Desert Fertilization study sites.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item sample\_date - date of leaf (Larrea) or plant (Pectocarya) collection
+  \item season\_year - season and year of collection (for easier sorting)
+  \item tissue\_type - source of tissue material
+  \item analyte - element analyzed
+  \item weight - weight of material used for analysis
+  \item percent\_compostition - percent composition of analyte
+  \item comment - comment about analytical measurement
+\end{itemize}
+
+### Tissue_Icp
+Elemental composition of Larrea tridentata leaf tissue and Pectocarya recurvata (whole plant) tissue collected from control plots at Desert Fertilization study sites. Most analyses are by ICP-MS except Sulfur (S), which is typically analyzed by ICP-OES with the instrument type noted in the instrument field.
+\begin{itemize}
+  \item site\_code - site name abbreviation
+  \item plot\_id - plot id number
+  \item treatment\_code - treatment name abbreviation
+  \item sample\_date - date of leaf (Larrea) or plant (Pectocarya) collection
+  \item season\_year - season and year of collection (for easier sorting)
+  \item tissue\_type - source of tissue material
+  \item instrument - instrument employed for tissue analysis
+  \item isotope\_element - isotope atomic mass and element symbol, except Sulfur (S; element symbol only)
+  \item concentration - mass of isotope\_element per mass of leaf material
+  \item source\_file - file name corresponding to raw data for the observation (raw data available as another entity in this data set)
+\end{itemize}
+
+## Site Codes
+\begin{itemize}
+  \item DBG - core region: Desert Botanical Garden
+  \item EME - west region: Estrella Mountain Regional Park east
+  \item EMW - west region: Estrella Mountain Regional Park west
+  \item LDP - east region: Lost Dutchman State Park
+  \item MCN - east region: McDowell Mountain Regional north
+  \item MCS - east region: McDowell Mountain Regional south
+  \item MVP - core region: North Mountain
+  \item PWP - core region: Piestewa Peak
+  \item SME - core region: South Mountain Park east
+  \item SMW - core region: South Mountain Park west
+  \item SNE - west region: Sonoran Desert National Monument east
+  \item SNW - west region: Sonoran Desert National Monument west
+  \item SRR - east region: Salt River Recreation Area (Tonto NF)
+  \item UMP - east region: Usery Mountain Regional Park
+  \item WTM - west region: White Tanks Mountain Regional Park
+\end{itemize} 
+
+## Treatment Codes
+\begin{itemize}
+  \item C1 - control plot 1
+  \item N	- nitrogen amendment
+  \item NP - nitrogen + phosphorus amendment
+  \item P	- phosphorus amendment
+\end{itemize}
+
+## Location Within Plot (Biomass / Composition) Codes
+\begin{itemize}
+  \item IP - subplot located in an interplant space	
+  \item P	- subplot features a Larrea tridentata plant
+\end{itemize}
+
+## Cover Category Codes
+\begin{itemize}
+  \item annual - observation referring to a type of plant
+  \item plot\_characteristic - observation referring to characteristic of the plot other than cover of a specific type of annual plant
+  \item record\_keeping - entry for record keeping, typically whether the plot was survyed
+\end{itemize}
+
+## Location Within Plot (Simulator) Codes
+\begin{itemize}
+  \item between\_plant - probes buried between plant canopies
+  \item blank - field blank: probe stored in a clean container under refrigeration during the deployment period
+  \item blk\_washed - field blank (washed): probe stored in a clean container under refrigeration during the deployment period, and washed as per sample probes
+  \item under\_plant - probes buried beneath the canopy of Larrea tridentata
+\end{itemize}
+
+## Analyte Codes
+\begin{itemize}
+  \item Al - aluminum	
+  \item B	- boron	
+  \item Ca - calcium	
+  \item Cd - cadmium	
+  \item Cu - copper	
+  \item Fe - iron	
+  \item K	- potassium	
+  \item Mg - magnesium	
+  \item Mn - manganese	
+  \item NH4-N	- ammonium-nitrogen	
+  \item NO3-N	- nitrate-nitrogen	
+  \item P	- phosphorus	
+  \item Pb - lead	
+  \item S	- sulfur	
+  \item Total-N	- sum of NO3-N and NH4-N	
+  \item Zn - zinc
+\end{itemize}
+
+## Shrub Codes
+\begin{itemize}
+  \item L1 - Larrea tridentata study plant \#1	
+  \item L2 - Larrea tridentata study plant \#2	
+  \item L3 - Larrea tridentata study plant \#3	
+  \item L4 - Larrea tridentata study plant \#4	
+  \item L5 - Larrea tridentata study plant \#5
+\end{itemize}
+
+## Tissue Type Codes
+\begin{itemize}
+  \item Larrea tridentata - Larrea tridentata leaf tissue	
+  \item Pectocarya recurvata - Pectocarya recurvata whole-plant tissue	
+\end{itemize}
+
+## Analyte (Tissue_chn) Codes
+\begin{itemize}
+  \item Carbon \% - percent carbon	
+  \item Hydrogen \% - percent hydrogen	
+  \item Nitrogen \% - percent nitrogen
+\end{itemize}
+
+## Instrument Codes
+\begin{itemize}
+  \item ICP-MS - Inductively Coupled Plasma Mass Spectrometer	
+  \item ICP-OES - Inductively Coupled Plasma Optical Emission Spectrometer
+\end{itemize}
