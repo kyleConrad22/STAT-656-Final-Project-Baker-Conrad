@@ -69,15 +69,55 @@ annuals_biomass <- subset(annuals_biomass, select=-c(notes))
 annuals_biomass <- subset(annuals_biomass, select=-c(date))
 ```
 
-Clean `annuals_composition`:
+Note that for this analysis, we are only interested in the total growth of annual and perennial plants. We are not interested in composition of the plants within each plot. It can be assumed that since all plots are within the Sonoran Desert that the species growing in each plot year over year will be similar and therefore will have minimal impact on observed growth. Therefore, `annuals_composition` will be disregarded throughout this analysis. Finally, it should be noted that the plots used for composition measurements were different plots than the plots used for biomass measurements. There is little reason for these plots to effect the others' measurements.\
+
+Nonetheless, see below the process for cleaning `annuals_composition`, should the data be used at a later date:
 ```{r, results="hide"}
 # Begin by dropping the date variable for similar reasons as its removal from annuals_biomass
 annuals_composition <- subset(annuals_composition, select=-c(date))
 
-# View the unique levels of cover_category and cover_type
+# Observations of cover_type == "sampled" contain no pertinent information, therefore, they will be dropped
+annuals_composition <- subset(annuals_composition, cover_type != "sampled")
 
+# Similarly, cover_category contains no useful information for this analysis and will therefore be dropped.
+annuals_composition <- subset(annuals_composition, select = -c(cover_category))
+
+# Additionally, drop the collector variable. Since this variable is not shared with biomass it cannot be used for analysis.
+annuals_composition <- subset(annuals_composition, select = -c(collector))
+
+# Now, collate the data by cover_type and set NA values to 0. That is, NA values are assumed to be observations where the plant was not observed. 
+annuals_composition_collated <- annuals_composition %>% 
+  pivot_wider(names_from = cover_type, values_from = cover_amount)
+
+annuals_composition_collated[is.na(annuals_composition_collated)] <- 0
+
+annuals_composition <- annuals_composition_collated
+
+# Finally, note that the observation: site_code == "PWP", plot_id == 33, treatment_code == "C1", location_within_plot == "P", subplot == 2, and year == "2013"; has a far outlying total_shrub_cover variable value (7.000). It is assumed that this was a mistake in data collection and as such will be set as the sum of all other observed covers. 
+# This task is ignored for the time being as this data will not be used for analysis.
 ```
 
+```{r, echo=FALSE}
+# Remove unused variables from the environment
+rm(annuals_composition_collated, annuals_composition)
+```
+
+The soil anion and cation results available in the `plant_root_simulator` dataset are not of interest in this analysis. Therefore, this dataset will be disregarded for the analysis.
+```{r, echo = FALSE}
+# Remove unused dataset from the environment
+rm(plant_root_simulator)
+```
+
+Similarly, this analysis is only interested in how the application of different types of fertilizer affects plant growth and if these affects vary based on region. Since the same amount of fertilizer is applied in each region, the data contained within `fertilizer_application` is not pertinent for this analysis. It will therefore be disregarded.
+```{r, echo=FALSE}
+# Remove unused dataset from the environment
+rm(fertilizer_application)
+```
+
+The data sets, `tissue_chn` and `tissue_icp`, both contain measurements that would not be useful for determining the affect of fertilizer application on plant growth. They would be response variables similar to total plant growth observed, therefore both data sets will be disregarded. 
+```{r, echo =FALSE}
+rm(tissue_chn, tissue_icp)
+```
 
 Cleaning up annuals_composition:
 ```{r}
