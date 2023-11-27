@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
   \item Is there a difference apparent between affect on growth of annual plants as compared to perennial plants? What is the impact on growth of Larrea Tridentata plants specifically?
 \end{itemize}
 
+# Analysis and Data Processing
+## Preprocessing the Data
 Loading the required packages:
 ```{r}
 library(tidyverse) # For re-formatting data sets
@@ -70,7 +72,15 @@ annuals_biomass <- subset(annuals_biomass, select=-c(date))
 
 # If mass is NA for any other observations then will remove those observations. Cannot determine reasoning behind the NA's.
 annuals_biomass <- subset(annuals_biomass, !is.na(mass))
+
+# plot_id contains the same information as treatment_code, therefore it will be dropped
+annuals_biomass <- subset(annuals_biomass, select = -c(plot_id))
 ```
+
+```{r, echo = FALSE}
+rm(vec)
+```
+
 
 Note that for this analysis, we are only interested in the total growth of annual and perennial plants. We are not interested in composition of the plants within each plot. It can be assumed that since all plots are within the Sonoran Desert that the species growing in each plot year over year will be similar and therefore will have minimal impact on observed growth. Therefore, `annuals_composition` will be disregarded throughout this analysis. Finally, it should be noted that the plots used for composition measurements were different plots than the plots used for biomass measurements. There is little reason for these plots to effect the others' measurements.\
 
@@ -123,7 +133,7 @@ rm(tissue_chn, tissue_icp, stem_growth)
 ```
 
 
-Now, to clean up the data set `atmospheric_deposition`
+Now, to clean up the data set `atmospheric_deposition`:
 ```{r, results='hide'}
 # Examine the notes variable values and see if there are any observations which should be removed
 unique(atmospheric_deposition$notes)
@@ -147,14 +157,8 @@ atmospheric_deposition <- subset(atmospheric_deposition, !is.na(Ammonia) & !is.n
 atmospheric_deposition <- subset(atmospheric_deposition, !(field_id %in% c("resin.KCl.1", "resin.KCl.2", "resin.KCl.3")))
 ```
 
-The annual biomass of plants is measured each spring (in March). Therefore, the atmospheric deposition measurements corresponding to each observation are only valid if they occurred before this date. Additionally, measurements of atmospheric deposition were taken every 3 months. Therefore, you can use the deposition data from Summer, Fall and Winter of the previous year and the Spring of the current year as explanatory variables for a given observation of mass. Finally, note that each sub-quadrant of each subplot is harvest once every 4 years. Therefore, it should actually be the previous 4 years of observations of atmospheric deposition which affect growth.\
-
-Although it will result in the loss of some data, the above method was chosen as the optimal manner of analysis to ensure that our data is modeled correctly and inference accurate. Since the first observation of biomass was made in Spring of 2008 and the first observation of deposition was made in Fall of 2008 there will be 4.5 years of data loss from `annuals_biomass`.
+Continue by removing observations which are not pertinent to this analysis and convert data into the same format as the `annual_biomass` data set. Then, investigate the number of missing observations in this data set to see if it contains enough information for use in our analysis.
 ```{r}
-# Begin by removing observations of annuals_biomass which don't align with requirements outlined previously.
-# First year in which a full year (Summer to Spring) of data is available in atmospheric_decomposition is 2010. Therefore, a full 4 years worth of data is not available until 2014.
-annuals_biomass <- subset(annuals_biomass, year > 2013)
-
 # Format the date in atmospheric deposition and remove old date variable
 atmospheric_deposition$year <- format(as.Date(atmospheric_deposition$collection_date, format = "%Y-%m-%d"), "%Y")
 
@@ -163,19 +167,52 @@ atmospheric_deposition$month <- format(as.Date(atmospheric_deposition$collection
 atmospheric_deposition <- subset(atmospheric_deposition, select = -c(collection_date))
 
 # Change month variable into a more interpretable season variable
+atmospheric_deposition$month <- as.numeric(atmospheric_deposition$month)
+
 atmospheric_deposition$season <- ifelse(atmospheric_deposition$month %in% c(2, 3, 4), "Spring", 
                                         ifelse(atmospheric_deposition$month %in% c(5,6,7), "Summer",
                                                ifelse(atmospheric_deposition$month %in% c(8,9,10), "Fall", "Winter")))
 
 # Observations for winter of a given year can be made in January of the following year.
 atmospheric_deposition$year <- as.numeric(atmospheric_deposition$year)
-atmospheric_deposition$year[atmospheric_deposition$month == 1] = atmospheric_deposition$year - 1
+
+atmospheric_deposition$year[atmospheric_deposition$month == 1] = 
+  atmospheric_deposition$year[atmospheric_deposition$month == 1] - 1
 
 atmospheric_deposition <- subset(atmospheric_deposition, select = -c(month))
 
 # Remove observations of atmospheric_deposition which contain no usable information
 atmospheric_deposition <- subset(atmospheric_deposition, year != 2008 & !(year == 2009 & season == "Spring"))
+
+atmospheric_deposition <- atmospheric_deposition[!grepl("CNTL", atmospheric_deposition$field_id), ]
+atmospheric_deposition <- subset(atmospheric_deposition, !(site_code %in% c("GTW", "LVE")))
+atmospheric_deposition <- atmospheric_deposition[!grepl("MONTH", atmospheric_deposition$field_id), ]
+
+# Create a single measure of atmospheric deposition for each season at each site by taking the average of all observations for that site, season and year.
+atmospheric_deposition <- subset(atmospheric_deposition, select = -c(field_id))
+
+atmospheric_deposition <- atmospheric_deposition %>%
+  group_by(site_code, year, season) %>%
+  summarize(Ammonia = mean(Ammonia), `Nitrate/Nitrite` = mean(`NItrate/Nitrite`))
+
+atmospheric_deposition <- data.frame(atmospheric_deposition)
+
+# Amend data with all unique combinations of season, year, and site_code
+atmospheric_deposition <- atmospheric_deposition %>% complete(site_code, year, season)
+
+# Investigate the number of missing observations
+print(paste("There are", sum(is.na(atmospheric_deposition$Ammonia)), "missing Ammonia measurements and", sum(is.na(atmospheric_deposition$`Nitrate.Nitrite`)), "missing Nitrate/Nitrite measurements."))
+print(paste("There are a total of", nrow(atmospheric_deposition), "observations in the atmospheric deposition data set."))
 ```
+
+Ass seen above more than 25\% of the observations necessary for the specified analysis are missing. Additionally, inclusion of the atmospheric deposition data would result in reducing the size of usable observations by approximately half (see below). Therefore, the decision was made to not include the data in `atmospheric_deposition` in this analysis. Should, in the future, more data be found one could have completed the analysis with this data using the following method.\
+
+The annual biomass of plants is measured each spring (in March). Therefore, the atmospheric deposition measurements corresponding to each observation are only valid if they occurred before this date. Additionally, measurements of atmospheric deposition were taken every 3 months. Therefore, you can use the deposition data from Summer, Fall and Winter of the previous year and the Spring of the current year as explanatory variables for a given observation of mass. Finally, note that each sub-quadrant of each subplot is harvest once every 4 years. Therefore, it should actually be the previous 4 years of observations of atmospheric deposition which affect growth.\
+
+Although it will result in the loss of some data, the above method was chosen as the optimal manner of analysis to ensure that our data is modeled correctly and inference accurate. Since the first observation of biomass was made in Spring of 2008 and the first observation of deposition was made in Fall of 2008 there will be 4.5 years of data loss from `annuals_biomass`.\
+
+## Analysis
+
 
 \newpage
 
