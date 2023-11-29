@@ -75,6 +75,9 @@ annuals_biomass <- subset(annuals_biomass, !is.na(mass))
 
 # plot_id contains the same information as treatment_code, therefore it will be dropped
 annuals_biomass <- subset(annuals_biomass, select = -c(plot_id))
+
+# Drop all obserations where mass is negative, there is no useful info to be gleamed by them
+annuals_biomass <- annuals_biomass[annuals_biomass$mass >= 0,]
 ```
 
 ```{r, echo = FALSE}
@@ -225,6 +228,69 @@ annuals_biomass$region[annuals_biomass$site_code %in% c("LDP", "MCN", "MCS", "SR
 ```
 
 ## Analysis
+Load packages to be used for analysis and set seed for replication purposes:
+```{r, results='hide', warning=FALSE}
+library("rstan")
+library("bayesplot")
+library("ggplot2")
+```
+
+
+Begin by applying the log transformation to the response variable and formatting the data for the rest of analysis. Note some observed masses were zero, therefore a small constant value was added to each mass observation prior to the log transformation.
+```{r}
+X <- subset(annuals_biomass, select=-c(mass))
+Y <- log(annuals_biomass$mass + .0001)
+```
+
+```{r, echo=FALSE}
+# Setting options of rstan such that a compiled copy of the code is saved to the disk, save on compilation time
+rstan_options(auto_write = TRUE)
+```
+
+Expanding factors into series of binary variables for use in rstan. Note that the intercept term will denote the response when site_code = "WTM", treatment_code = "C1", location_within_plot = "P", subplot = 1, and region = "core".
+```{r}
+X <- data.frame(
+  subplot = X$subplot - 1,
+  west = as.integer(X$region == "west"),
+  east = as.integer(X$region == "east"),
+  interplant = as.integer(X$location_within_plot == "IP"),
+  nit = as.integer(X$treatment_code == "N"),
+  pho = as.integer(X$treatment_code == "P"),
+  nit_pho = as.integer(X$treatment_code == "NP"),
+  LDP = as.integer(X$treatment_code == "LDP"),
+  UMP = as.integer(X$treatment_code == "LDP"),
+  SRR = as.integer(X$treatment_code == "LDP"),
+  MCN = as.integer(X$treatment_code == "LDP"),
+  MCS = as.integer(X$treatment_code == "LDP"),
+  SME = as.integer(X$treatment_code == "LDP"),
+  PWP = as.integer(X$treatment_code == "LDP"),
+  MVP = as.integer(X$treatment_code == "LDP"),
+  SMW = as.integer(X$treatment_code == "LDP"),
+  DBG = as.integer(X$treatment_code == "LDP"),
+  SNE = as.integer(X$treatment_code == "LDP"),
+  SNW = as.integer(X$treatment_code == "LDP"),
+  EMW = as.integer(X$treatment_code == "LDP"),
+  EME = as.integer(X$treatment_code == "LDP"), 
+  year = X$year
+  )
+```
+
+The stan code for a normal hierarchical model:
+```{r}
+reg_code = "
+data {
+  
+}
+
+parameters {
+
+}
+
+model {
+
+}
+"
+```
 
 
 
