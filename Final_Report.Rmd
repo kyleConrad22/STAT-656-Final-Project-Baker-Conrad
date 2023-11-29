@@ -205,13 +205,28 @@ print(paste("There are", sum(is.na(atmospheric_deposition$Ammonia)), "missing Am
 print(paste("There are a total of", nrow(atmospheric_deposition), "observations in the atmospheric deposition data set."))
 ```
 
-Ass seen above more than 25\% of the observations necessary for the specified analysis are missing. Additionally, inclusion of the atmospheric deposition data would result in reducing the size of usable observations by approximately half (see below). Therefore, the decision was made to not include the data in `atmospheric_deposition` in this analysis. Should, in the future, more data be found one could have completed the analysis with this data using the following method.\
+```{r}
+# Remove unused dataset from memory
+rm(atmospheric_deposition)
+```
+
+As seen above more than 25\% of the observations necessary for the specified analysis are missing. Additionally, inclusion of the atmospheric deposition data would result in reducing the size of usable observations by approximately half (see below). Therefore, the decision was made to not include the data in `atmospheric_deposition` in this analysis. Should, in the future, more data be found one could have completed the analysis with this data using the following method.\
 
 The annual biomass of plants is measured each spring (in March). Therefore, the atmospheric deposition measurements corresponding to each observation are only valid if they occurred before this date. Additionally, measurements of atmospheric deposition were taken every 3 months. Therefore, you can use the deposition data from Summer, Fall and Winter of the previous year and the Spring of the current year as explanatory variables for a given observation of mass. Finally, note that each sub-quadrant of each subplot is harvest once every 4 years. Therefore, it should actually be the previous 4 years of observations of atmospheric deposition which affect growth.\
 
 Although it will result in the loss of some data, the above method was chosen as the optimal manner of analysis to ensure that our data is modeled correctly and inference accurate. Since the first observation of biomass was made in Spring of 2008 and the first observation of deposition was made in Fall of 2008 there will be 4.5 years of data loss from `annuals_biomass`.\
 
+Finally, a variable must be added to group the different sites by their common geographic region. That is whether the region is west, within, or east of the city core. 
+```{r}
+annuals_biomass$region <- NA
+annuals_biomass$region[annuals_biomass$site_code %in% c("DBG", "MVP", "PWP", "SME", "SMW")] <- "core"
+annuals_biomass$region[annuals_biomass$site_code %in% c("EME", "EMW", "SNE", "SNW", "WTM")] <- "west"
+annuals_biomass$region[annuals_biomass$site_code %in% c("LDP", "MCN", "MCS", "SRR", "UMP")] <- "east"
+```
+
 ## Analysis
+
+
 
 
 \newpage
