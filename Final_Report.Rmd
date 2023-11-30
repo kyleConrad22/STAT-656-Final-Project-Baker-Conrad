@@ -21,19 +21,11 @@ knitr::opts_chunk$set(echo = TRUE)
 Loading the required packages:
 ```{r}
 library(tidyverse) # For re-formatting data sets
-library(lubridate) # For manipulations of date columns
 ```
 
 Read in data:
 ```{r}
 annuals_biomass <- read.csv("Data/632_annuals_biomass.csv")
-annuals_composition <- read.csv("Data/632_annuals_composition.csv")
-atmospheric_deposition <- read.csv("Data/632_atmospheric_deposition.csv")
-fertilizer_application <- read.csv("Data/632_fertilizer_application.csv")
-plant_root_simulator <- read.csv("Data/632_plant_root_simulator.csv")
-stem_growth <- read.csv("Data/632_stem_growth.csv")
-tissue_chn <- read.csv("Data/632_tissue_chn.csv")
-tissue_icp <- read.csv("Data/632_tissue_icp.csv")
 ```
 
 Prior to beginning analysis, the data should be cleaned to remove justifiable outlying observations. Additionally, variables which will not be used will be removed from each sub data set prior to combining data.\
@@ -80,145 +72,6 @@ annuals_biomass <- subset(annuals_biomass, select = -c(plot_id))
 annuals_biomass <- annuals_biomass[annuals_biomass$mass >= 0,]
 ```
 
-```{r, echo = FALSE}
-rm(vec)
-```
-
-
-Note that for this analysis, we are only interested in the total growth of annual and perennial plants. We are not interested in composition of the plants within each plot. It can be assumed that since all plots are within the Sonoran Desert that the species growing in each plot year over year will be similar and therefore will have minimal impact on observed growth. Therefore, `annuals_composition` will be disregarded throughout this analysis. Finally, it should be noted that the plots used for composition measurements were different plots than the plots used for biomass measurements. There is little reason for these plots to effect the others' measurements.\
-
-Nonetheless, see below the process for cleaning `annuals_composition`, should the data be used at a later date:
-```{r, results="hide"}
-# Begin by dropping the date variable for similar reasons as its removal from annuals_biomass
-annuals_composition <- subset(annuals_composition, select=-c(date))
-
-# Observations of cover_type == "sampled" contain no pertinent information, therefore, they will be dropped
-annuals_composition <- subset(annuals_composition, cover_type != "sampled")
-
-# Similarly, cover_category contains no useful information for this analysis and will therefore be dropped.
-annuals_composition <- subset(annuals_composition, select = -c(cover_category))
-
-# Additionally, drop the collector variable. Since this variable is not shared with biomass it cannot be used for analysis.
-annuals_composition <- subset(annuals_composition, select = -c(collector))
-
-# Now, collate the data by cover_type and set NA values to 0. That is, NA values are assumed to be observations where the plant was not observed. 
-annuals_composition_collated <- annuals_composition %>% 
-  pivot_wider(names_from = cover_type, values_from = cover_amount)
-
-annuals_composition_collated[is.na(annuals_composition_collated)] <- 0
-
-annuals_composition <- annuals_composition_collated
-
-# Finally, note that the observation: site_code == "PWP", plot_id == 33, treatment_code == "C1", location_within_plot == "P", subplot == 2, and year == "2013"; has a far outlying total_shrub_cover variable value (7.000). It is assumed that this was a mistake in data collection and as such will be set as the sum of all other observed covers. 
-# This task is ignored for the time being as this data will not be used for analysis.
-```
-
-```{r, echo=FALSE}
-# Remove unused variables from the environment
-rm(annuals_composition_collated, annuals_composition)
-```
-
-The soil anion and cation results available in the `plant_root_simulator` dataset are not of interest in this analysis. Therefore, this dataset will be disregarded for the analysis.
-```{r, echo = FALSE}
-# Remove unused dataset from the environment
-rm(plant_root_simulator)
-```
-
-Similarly, this analysis is only interested in how the application of different types of fertilizer affects plant growth and if these affects vary based on region. Since the same amount of fertilizer is applied in each region, the data contained within `fertilizer_application` is not pertinent for this analysis. It will therefore be disregarded.
-```{r, echo=FALSE}
-# Remove unused dataset from the environment
-rm(fertilizer_application)
-```
-
-The data sets; `tissue_chn`, `tissue_icp`, and `stem_growth` all contain measurements that would not be useful for determining the affect of fertilizer application on plant growth. They would be response variables similar to total plant growth observed, therefore these data sets will be disregarded. 
-```{r, echo =FALSE}
-rm(tissue_chn, tissue_icp, stem_growth)
-```
-
-
-Now, to clean up the data set `atmospheric_deposition`:
-```{r, results='hide'}
-# Examine the notes variable values and see if there are any observations which should be removed
-unique(atmospheric_deposition$notes)
-
-# None of the observations appear to need to be removed, therefore, the notes variable can be safely dropped. 
-atmospheric_deposition <- subset(atmospheric_deposition, select = -c(notes))
-
-# Remove the all observations where field_id == "KCl_blank" this obesrvation is not useful for analysis.
-atmospheric_deposition <- subset(atmospheric_deposition, field_id != "KCl_blank")
-
-# Note that run_id is not useful for this analysis, it will therefore be removed.
-atmospheric_deposition <- subset(atmospheric_deposition, select = -c(run_id))
-
-# Now collate the data set such that it is in a usable format.
-atmospheric_deposition <- atmospheric_deposition %>% pivot_wider(names_from = analyte_name, values_from = concentration)
-
-# Note that there are a number of observations where either Ammonia or Nitrate/Nitrite are NA. There is enough data available that these observations can be safety dropped.
-atmospheric_deposition <- subset(atmospheric_deposition, !is.na(Ammonia) & !is.na(`NItrate/Nitrite`))
-
-# Remove observations which cannot be used for analysis based on field_id value.
-atmospheric_deposition <- subset(atmospheric_deposition, !(field_id %in% c("resin.KCl.1", "resin.KCl.2", "resin.KCl.3")))
-```
-
-Continue by removing observations which are not pertinent to this analysis and convert data into the same format as the `annual_biomass` data set. Then, investigate the number of missing observations in this data set to see if it contains enough information for use in our analysis.
-```{r}
-# Format the date in atmospheric deposition and remove old date variable
-atmospheric_deposition$year <- format(as.Date(atmospheric_deposition$collection_date, format = "%Y-%m-%d"), "%Y")
-
-atmospheric_deposition$month <- format(as.Date(atmospheric_deposition$collection_date, format="%Y-%m-%d"), "%m")
-
-atmospheric_deposition <- subset(atmospheric_deposition, select = -c(collection_date))
-
-# Change month variable into a more interpretable season variable
-atmospheric_deposition$month <- as.numeric(atmospheric_deposition$month)
-
-atmospheric_deposition$season <- ifelse(atmospheric_deposition$month %in% c(2, 3, 4), "Spring", 
-                                        ifelse(atmospheric_deposition$month %in% c(5,6,7), "Summer",
-                                               ifelse(atmospheric_deposition$month %in% c(8,9,10), "Fall", "Winter")))
-
-# Observations for winter of a given year can be made in January of the following year.
-atmospheric_deposition$year <- as.numeric(atmospheric_deposition$year)
-
-atmospheric_deposition$year[atmospheric_deposition$month == 1] = 
-  atmospheric_deposition$year[atmospheric_deposition$month == 1] - 1
-
-atmospheric_deposition <- subset(atmospheric_deposition, select = -c(month))
-
-# Remove observations of atmospheric_deposition which contain no usable information
-atmospheric_deposition <- subset(atmospheric_deposition, year != 2008 & !(year == 2009 & season == "Spring"))
-
-atmospheric_deposition <- atmospheric_deposition[!grepl("CNTL", atmospheric_deposition$field_id), ]
-atmospheric_deposition <- subset(atmospheric_deposition, !(site_code %in% c("GTW", "LVE")))
-atmospheric_deposition <- atmospheric_deposition[!grepl("MONTH", atmospheric_deposition$field_id), ]
-
-# Create a single measure of atmospheric deposition for each season at each site by taking the average of all observations for that site, season and year.
-atmospheric_deposition <- subset(atmospheric_deposition, select = -c(field_id))
-
-atmospheric_deposition <- atmospheric_deposition %>%
-  group_by(site_code, year, season) %>%
-  summarize(Ammonia = mean(Ammonia), `Nitrate/Nitrite` = mean(`NItrate/Nitrite`))
-
-atmospheric_deposition <- data.frame(atmospheric_deposition)
-
-# Amend data with all unique combinations of season, year, and site_code
-atmospheric_deposition <- atmospheric_deposition %>% complete(site_code, year, season)
-
-# Investigate the number of missing observations
-print(paste("There are", sum(is.na(atmospheric_deposition$Ammonia)), "missing Ammonia measurements and", sum(is.na(atmospheric_deposition$`Nitrate.Nitrite`)), "missing Nitrate/Nitrite measurements."))
-print(paste("There are a total of", nrow(atmospheric_deposition), "observations in the atmospheric deposition data set."))
-```
-
-```{r}
-# Remove unused dataset from memory
-rm(atmospheric_deposition)
-```
-
-As seen above more than 25\% of the observations necessary for the specified analysis are missing. Additionally, inclusion of the atmospheric deposition data would result in reducing the size of usable observations by approximately half (see below). Therefore, the decision was made to not include the data in `atmospheric_deposition` in this analysis. Should, in the future, more data be found one could have completed the analysis with this data using the following method.\
-
-The annual biomass of plants is measured each spring (in March). Therefore, the atmospheric deposition measurements corresponding to each observation are only valid if they occurred before this date. Additionally, measurements of atmospheric deposition were taken every 3 months. Therefore, you can use the deposition data from Summer, Fall and Winter of the previous year and the Spring of the current year as explanatory variables for a given observation of mass. Finally, note that each sub-quadrant of each subplot is harvest once every 4 years. Therefore, it should actually be the previous 4 years of observations of atmospheric deposition which affect growth.\
-
-Although it will result in the loss of some data, the above method was chosen as the optimal manner of analysis to ensure that our data is modeled correctly and inference accurate. Since the first observation of biomass was made in Spring of 2008 and the first observation of deposition was made in Fall of 2008 there will be 4.5 years of data loss from `annuals_biomass`.\
-
 Finally, a variable must be added to group the different sites by their common geographic region. That is whether the region is west, within, or east of the city core. 
 ```{r}
 annuals_biomass$region <- NA
@@ -235,65 +88,165 @@ library("bayesplot")
 library("ggplot2")
 ```
 
-
-Begin by applying the log transformation to the response variable and formatting the data for the rest of analysis. Note some observed masses were zero, therefore a small constant value was added to each mass observation prior to the log transformation.
-```{r}
-X <- subset(annuals_biomass, select=-c(mass))
-Y <- log(annuals_biomass$mass + .0001)
-```
-
 ```{r, echo=FALSE}
 # Setting options of rstan such that a compiled copy of the code is saved to the disk, save on compilation time
 rstan_options(auto_write = TRUE)
 ```
 
-Expanding factors into series of binary variables for use in rstan. Note that the intercept term will denote the response when site_code = "WTM", treatment_code = "C1", location_within_plot = "P", subplot = 1, and region = "core".
+Apply the log transformation to the response variable and formatting the data for the rest of analysis. Note some observed masses were zero, therefore a small constant value was added to each mass observation prior to the log transformation. Additionally, year will be coded as the number of years since 2008.
 ```{r}
-X <- data.frame(
-  subplot = X$subplot - 1,
-  west = as.integer(X$region == "west"),
-  east = as.integer(X$region == "east"),
-  interplant = as.integer(X$location_within_plot == "IP"),
-  nit = as.integer(X$treatment_code == "N"),
-  pho = as.integer(X$treatment_code == "P"),
-  nit_pho = as.integer(X$treatment_code == "NP"),
-  LDP = as.integer(X$treatment_code == "LDP"),
-  UMP = as.integer(X$treatment_code == "LDP"),
-  SRR = as.integer(X$treatment_code == "LDP"),
-  MCN = as.integer(X$treatment_code == "LDP"),
-  MCS = as.integer(X$treatment_code == "LDP"),
-  SME = as.integer(X$treatment_code == "LDP"),
-  PWP = as.integer(X$treatment_code == "LDP"),
-  MVP = as.integer(X$treatment_code == "LDP"),
-  SMW = as.integer(X$treatment_code == "LDP"),
-  DBG = as.integer(X$treatment_code == "LDP"),
-  SNE = as.integer(X$treatment_code == "LDP"),
-  SNW = as.integer(X$treatment_code == "LDP"),
-  EMW = as.integer(X$treatment_code == "LDP"),
-  EME = as.integer(X$treatment_code == "LDP"), 
-  year = X$year
-  )
+X <- subset(annuals_biomass, select=-c(mass))
+X$year <- X$year - 2008
+Y <- log(annuals_biomass$mass + .0001)
 ```
 
-The stan code for a normal hierarchical model:
+Now, inspect the distribution of the response to investigate the shape of the distribution. 
 ```{r}
-reg_code = "
+plot(density(Y))
+```
+
+Notice that there is a peak in the density of the responses at Ln($10^{-4}$) which does not follow the trend of the other observations in the data set. This corresponds to the zero values in our original data and suggests that when extremely sparse growth was observed by those collecting biomass that the decision was made to simply log that as no growth. These outliers will skew the results of our analysis and thus the decision was made to remove these observations.
+```{r}
+annuals_biomass <- annuals_biomass[annuals_biomass$mass > 0,]
+
+X <- subset(annuals_biomass, select=-c(mass))
+X$year <- X$year - 2008
+Y <- log(annuals_biomass$mass)
+```
+
+Note, it is no longer need to add a small constant to enable log transformation of the response.\
+
+Again, inspect the distribution of the transformed response.
+```{r}
+plot(density(Y))
+```
+
+\newpage
+
+LEFT BLANK INTENTIONALLY
+
+\newpage
+
+Create the design matrix for the chosen model for import into stan. Note, subplot is dropped since it is assumed to have a negligible effect on the model's accuracy.
+```{r}
+X <- data.frame(model.matrix(mass ~ . - subplot - site_code - region, annuals_biomass))
+colnames(X)[1] <- "Offset"
+
+#Standardize to speed up stan sampling, note binary variables are standardized as suggested in section 4.2 of Gelman and Hill (http://www.stat.columbia.edu/~gelman/arm/)
+X$year <- (X$year - mean(X$year)) / sd(X$year)
+X$treatment_codeN <- (X$treatment_codeN - mean(X$treatment_codeN)) / (2*sd(X$treatment_codeN))
+X$treatment_codeP <- (X$treatment_codeP - mean(X$treatment_codeP)) / (2*sd(X$treatment_codeP))
+X$treatment_codeNP <- (X$treatment_codeNP - mean(X$treatment_codeNP)) / (2*sd(X$treatment_codeNP))
+X$location_within_plotP <- (X$location_within_plotP - mean(X$location_within_plotP)) / (2*sd(X$location_within_plotP))
+Y <- (Y - mean(Y))/sd(Y)
+
+# Modify dataset such that it may be read by stan
+annuals_biomass$region_int <- as.integer(as.factor(annuals_biomass$region))
+annuals_biomass$site_code_int <- as.integer(as.factor(annuals_biomass$site_code))
+
+# Set the site regions as an array corresponding to the site coding above
+site_region <- rep(NA, length(unique(annuals_biomass$site_code)))
+for (i in 1:length(site_region)) {
+  site_region[i] <- annuals_biomass$region_int[annuals_biomass$site_code_int == i][1]
+}
+```
+
+STAN code using non-centered model:
+```{r}
+noncent_hier_code <- "
 data {
-  
+  int<lower=0> N;               // num individuals
+  int<lower=1> K;               // num ind predictors
+  int<lower=1> J;               // num sites
+  int<lower=1> L;               // num site predictors
+  int<lower=1> I;               // num regions
+  int<lower=1,upper=J> jj[N];   // site for individual
+  int<lower=1,upper=I> ii[J];   // region for site
+  matrix[N, K] x;               // individual predictors
+  row_vector[L] u[J];           // group predictors
+  vector[N] y;                  // outcomes
 }
 
 parameters {
+  vector[K] alpha[J];           // indiv coeffs by group (reparam)
+  matrix[L, K] gamma[I];           // group coeffs
+  corr_matrix[K] Omega;         // prior correlation
+  vector<lower=0>[K] tau;       // prior scale
+  real<lower=0> sigma;          // prediction error scale
+  real mu;                      // prior mean for region
+  real<lower=0> eta;            // prior std for region
+}
 
+transformed parameters {
+  vector[K] beta[J];            // Individual Coeffs by group
+  for (j in 1:J)
+    beta[j] = to_vector(u[j] * gamma[ii[j]]) + (quad_form_diag(Omega, tau) * alpha[j]);
 }
 
 model {
+  mu ~ normal(0, 2);
+  eta ~ inv_gamma(.1, .1);
 
+  for (i in 1:I) {
+    to_vector(gamma[i]) ~ normal(mu, eta);
+  }
+
+  tau ~ cauchy(0, 2.5);
+  Omega ~ lkj_corr(2);
+  
+  sigma ~ inv_gamma(.1, .1);
+  
+  for (j in 1:J) {
+    alpha[j] ~ normal(0,1);
+  }
+  
+  {
+    vector[N] x_beta_jj;
+    for (n in 1:N)
+      x_beta_jj[n] = x[n] * beta[jj[n]];
+    y ~ normal(x_beta_jj, sigma);
+  }
+}
+
+generated quantities {
+  real y_rep[N];
+  {
+    vector[N] x_beta_jj;
+    for (n in 1:N)
+      x_beta_jj[n] = x[n] * beta[jj[n]];
+    y_rep = normal_rng(x_beta_jj, sigma);
+  }
 }
 "
+
+noncent_hier <- stan_model(model_code = noncent_hier_code)
 ```
 
+```{r}
+hier_data <- list(
+  N = nrow(X), 
+  K = ncol(X), 
+  J = length(unique(annuals_biomass$site_code)), 
+  L = 1, 
+  I = max(site_region),
+  jj = annuals_biomass$site_code_int, 
+  ii = site_region,
+  x = X, 
+  u = matrix(rep(1, length(unique(annuals_biomass$site_code))), nrow = length(unique(annuals_biomass$site_code))), 
+  y = Y
+  )
 
+nfit <- sampling(noncent_hier, data = hier_data, iter= 3000, warmup = 1500, chains=1)
+```
 
+```{r}
+post_smp <- as.data.frame(nfit)
+post_smp <- post_smp[,-(1:48)]
+colnames(post_smp)[1:6] <- colnames(X)  
+
+plot(density(post_smp$Offset))
+
+```
 
 \newpage
 
